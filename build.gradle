@@ -1,0 +1,39 @@
+group 'ua.com.lavi'
+
+buildscript {
+    ext.kotlin_version = '1.0.6'
+
+    repositories {
+        mavenCentral()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "com.github.jengelman.gradle.plugins:shadow:1.2.4"
+    }
+}
+
+apply plugin: 'kotlin'
+apply plugin: 'application'
+apply plugin: "com.github.johnrengelman.shadow"
+
+repositories {
+    mavenCentral()
+}
+
+mainClassName = 'ua.com.lavi.kots3.ApplicationKt'
+
+shadowJar {
+    baseName = project.name
+    classifier = null
+    version = project.version
+}
+
+
+dependencies {
+    compile 'com.amazonaws:aws-java-sdk-s3:1.11.89'
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+}
