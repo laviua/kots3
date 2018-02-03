@@ -41,16 +41,14 @@ class Kots3 {
             ActionType.UPLOAD -> {
                 upload(amazonS3Client, bucketName, source, target)
             }
-            else -> {
-                println("Unsupportable action argument: $actionType")
-            }
         }
     }
 
     fun upload(amazonS3Client: AmazonS3, bucketName: String, source: String, target: String) {
-        val files = PathBuilder.pathes(source)
+        val files = FilePathResolver.resolvePath(source)
+        val s3Path = buildS3Path(target)
         for (sourceFile in files) {
-            S3Uploader(amazonS3Client).upload(bucketName, sourceFile, target)
+            S3Uploader(amazonS3Client).upload(bucketName, sourceFile, s3Path + sourceFile.name)
         }
     }
 
@@ -79,7 +77,17 @@ class Kots3 {
     }
 
     enum class ActionType {
-        DOWNLOAD, UPLOAD, WEBHOOK
+        DOWNLOAD, UPLOAD
+    }
+
+    private fun buildS3Path(target: String): String {
+        if (target == "/") {
+            return ""
+        }
+        if (target.startsWith("/")) {
+            return target.removePrefix("/") + "/"
+        }
+        return target
     }
 
 }

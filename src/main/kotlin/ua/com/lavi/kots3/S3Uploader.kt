@@ -13,7 +13,7 @@ import java.io.File
 class S3Uploader(val amazonS3: AmazonS3) {
 
     fun upload(bucketName: String, sourceFile: File, s3FullPath: String) {
-        println("Uploading object from $sourceFile into $bucketName...")
+        println("Uploading object from $sourceFile into ${amazonS3.region}:$bucketName:$s3FullPath...")
         try {
             amazonS3.putObject(PutObjectRequest(bucketName, s3FullPath, sourceFile))
             println("Uploading is completed.")

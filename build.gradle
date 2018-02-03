@@ -17,6 +17,7 @@ buildscript {
     }
 }
 
+apply plugin: 'idea'
 apply plugin: 'kotlin'
 apply plugin: 'application'
 apply plugin: "com.github.johnrengelman.shadow"
@@ -32,6 +33,13 @@ shadowJar {
     baseName = project.name
     classifier = null
     version = project.version
+}
+
+idea {
+    module {
+        outputDir file('build/classes/main')
+        testOutputDir file('build/classes/test')
+    }
 }
 
 
