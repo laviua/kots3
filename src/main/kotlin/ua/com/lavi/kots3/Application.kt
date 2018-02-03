@@ -1,11 +1,15 @@
 package ua.com.lavi.kots3
 
-import com.amazonaws.AmazonClientException
-import com.amazonaws.AmazonServiceException
+import com.amazonaws.ClientConfiguration
 import com.amazonaws.auth.AWSStaticCredentialsProvider
 import com.amazonaws.auth.BasicAWSCredentials
+import com.amazonaws.retry.PredefinedRetryPolicies
+import com.amazonaws.retry.RetryPolicy
+import com.amazonaws.services.s3.AmazonS3
 import com.amazonaws.services.s3.AmazonS3ClientBuilder
 import java.io.File
+import java.nio.file.FileSystems
+import java.nio.file.Files
 
 
 fun main(args: Array<String>) {
@@ -15,62 +19,71 @@ fun main(args: Array<String>) {
 class Kots3 {
 
     fun start(args: Array<String>) {
-        if (args.isEmpty() || args.size != 7) {
-            println("Program arguments should be like this example: \r\n" +
-                    "java -jar kots3.jar DOWNLOAD <key> <secret> <bucket> <region> s3Folder/file.zip /tmp/file.zip" + "\r\n" +
-                    "java -jar kots3.jar UPLOAD <key> <secret> <bucket> <region> /tmp/file.zip s3Folder/file.zip")
+        if (args.isEmpty() || args.size < 5) {
+            println("Program arguments: \r\n" +
+                    "java -jar kots3.jar DOWNLOAD <key> <secret> <region> <bucket> <s3_source> <realfs_destination>" + "\r\n" +
+                    "java -jar kots3.jar UPLOAD <key> <secret> <region> <bucket> <realfs_source> <s3_destination>")
 
             System.exit(1)
         }
-        val actionType = args[0]
-        val awsKey = args[1]
-        val awsSecret = args[2]
-        val bucketName = args[3]
-        val region = args[4]
+        val key = args[1]
+        val secret = args[2]
+        val bucketRegion = args[3]
+        val bucketName = args[4]
+        val amazonS3Client = buildClient(key, secret, bucketRegion)
+        val actionType = ActionType.valueOf(args[0])
 
-        val basicAWSCredentials = BasicAWSCredentials(awsKey, awsSecret)
-
-        val amazonS3 = AmazonS3ClientBuilder.standard()
-                .withCredentials(AWSStaticCredentialsProvider(basicAWSCredentials))
-                .withRegion(region)
-                .build()
-
-        try {
-            if (ActionType.valueOf(actionType) == ActionType.DOWNLOAD) {
+        when (actionType) {
+            ActionType.DOWNLOAD -> {
                 val sourceS3Path = args[5]
                 val targetFullResourcePath = args[6]
-
-                val content = S3Downloader(amazonS3).download(bucketName, sourceS3Path)
+                val content = S3Downloader(amazonS3Client).download(bucketName, sourceS3Path)
                 File(targetFullResourcePath).outputStream().use { content }
             }
-
-            if (ActionType.valueOf(actionType) == ActionType.UPLOAD) {
-
+            ActionType.UPLOAD -> {
                 val sourceFullResourcePath = args[5]
                 val targetS3Resource = args[6]
-
-                S3Uploader(amazonS3).upload(bucketName, File(sourceFullResourcePath), targetS3Resource)
-
+                if (sourceFullResourcePath.contains("*")) {
+                    val split = sourceFullResourcePath.split("/")
+                    val mask = split[split.size - 1]
+                    for (path in Files.newDirectoryStream(FileSystems.getDefault().getPath(sourceFullResourcePath.removeSuffix(mask)), mask)) {
+                        S3Uploader(amazonS3Client).upload(bucketName, path.toFile(), path.fileName.toString())
+                    }
+                } else {
+                    val sourceFile = File(sourceFullResourcePath)
+                    S3Uploader(amazonS3Client).upload(bucketName, sourceFile, targetS3Resource)
+                }
             }
-        } catch (ase: AmazonServiceException) {
-            println("Error Message:    ${ase.message}")
-            println("HTTP Status Code: ${ase.statusCode}")
-            println("AWS Error Code:   ${ase.errorCode}")
-            println("Error Type:       ${ase.errorType}")
-            println("Request ID:       ${ase.requestId}")
-            System.exit(1)
-        } catch (ace: AmazonClientException) {
-            println("Caught an AmazonClientException, which means the client encountered an internal error while trying to communicate with S3, such as not being able to access the network.")
-            println("Error Message: " + ace.message)
-            System.exit(1)
-        } catch (e: Exception) {
-            print(e)
-            System.exit(1)
+            else -> {
+                println("Unsupportable action argument: $actionType")
+            }
         }
+    }
+
+    private fun buildClient(awsKey: String, awsSecret: String, awsRegion: String): AmazonS3 {
+        val maxErrorRetry = 5
+        val basicAWSCredentials = BasicAWSCredentials(awsKey, awsSecret)
+        val clientConfiguration = ClientConfiguration()
+        clientConfiguration.maxErrorRetry = maxErrorRetry
+        clientConfiguration.retryPolicy = RetryPolicy(
+                PredefinedRetryPolicies.DEFAULT_RETRY_CONDITION,
+                PredefinedRetryPolicies.DEFAULT_BACKOFF_STRATEGY,
+                maxErrorRetry,
+                true)
+
+        val amazonS3 = AmazonS3ClientBuilder.standard()
+                .withClientConfiguration(clientConfiguration)
+                .withCredentials(AWSStaticCredentialsProvider(basicAWSCredentials))
+                .withRegion(awsRegion)
+                .build()
+
+        return amazonS3
     }
 
     enum class ActionType {
-        DOWNLOAD, UPLOAD
+        DOWNLOAD, UPLOAD, WEBHOOK
     }
 
 }
+
+
