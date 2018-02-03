@@ -8,8 +8,6 @@ import com.amazonaws.retry.RetryPolicy
 import com.amazonaws.services.s3.AmazonS3
 import com.amazonaws.services.s3.AmazonS3ClientBuilder
 import java.io.File
-import java.nio.file.FileSystems
-import java.nio.file.Files
 
 
 fun main(args: Array<String>) {
@@ -26,33 +24,22 @@ class Kots3 {
 
             System.exit(1)
         }
+
         val key = args[1]
         val secret = args[2]
         val bucketRegion = args[3]
         val bucketName = args[4]
-        val amazonS3Client = buildClient(key, secret, bucketRegion)
+        val amazonS3Client = amazonS3(key, secret, bucketRegion)
         val actionType = ActionType.valueOf(args[0])
+        val source = args[5]
+        val target = args[6]
 
         when (actionType) {
             ActionType.DOWNLOAD -> {
-                val sourceS3Path = args[5]
-                val targetFullResourcePath = args[6]
-                val content = S3Downloader(amazonS3Client).download(bucketName, sourceS3Path)
-                File(targetFullResourcePath).outputStream().use { content }
+                download(amazonS3Client, bucketName, source, target)
             }
             ActionType.UPLOAD -> {
-                val sourceFullResourcePath = args[5]
-                val targetS3Resource = args[6]
-                if (sourceFullResourcePath.contains("*")) {
-                    val split = sourceFullResourcePath.split("/")
-                    val mask = split[split.size - 1]
-                    for (path in Files.newDirectoryStream(FileSystems.getDefault().getPath(sourceFullResourcePath.removeSuffix(mask)), mask)) {
-                        S3Uploader(amazonS3Client).upload(bucketName, path.toFile(), path.fileName.toString())
-                    }
-                } else {
-                    val sourceFile = File(sourceFullResourcePath)
-                    S3Uploader(amazonS3Client).upload(bucketName, sourceFile, targetS3Resource)
-                }
+                upload(amazonS3Client, bucketName, source, target)
             }
             else -> {
                 println("Unsupportable action argument: $actionType")
@@ -60,7 +47,18 @@ class Kots3 {
         }
     }
 
-    private fun buildClient(awsKey: String, awsSecret: String, awsRegion: String): AmazonS3 {
+    fun upload(amazonS3Client: AmazonS3, bucketName: String, source: String, target: String) {
+        val files = PathBuilder.pathes(source)
+        for (sourceFile in files) {
+            S3Uploader(amazonS3Client).upload(bucketName, sourceFile, target)
+        }
+    }
+
+    private fun download(amazonS3Client: AmazonS3, bucketName: String, source: String, target: String) {
+        File(target).outputStream().use { S3Downloader(amazonS3Client).download(bucketName, source) }
+    }
+
+    private fun amazonS3(awsKey: String, awsSecret: String, awsRegion: String): AmazonS3 {
         val maxErrorRetry = 5
         val basicAWSCredentials = BasicAWSCredentials(awsKey, awsSecret)
         val clientConfiguration = ClientConfiguration()
