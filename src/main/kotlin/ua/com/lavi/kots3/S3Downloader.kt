@@ -8,7 +8,7 @@ import com.amazonaws.services.s3.AmazonS3
  * Created by Oleksandr Loushkin on 11.02.17.
  */
 
-class S3Downloader(val amazonS3: AmazonS3) {
+class S3Downloader(private val amazonS3: AmazonS3) {
 
     fun download(bucketName: String, s3FullPath: String): ByteArray {
         println("Downloading an object $s3FullPath from $bucketName")

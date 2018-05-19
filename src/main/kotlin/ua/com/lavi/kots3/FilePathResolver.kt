@@ -5,7 +5,10 @@ import java.io.File
 
 object FilePathResolver {
 
-    fun resolvePath(path: String): MutableList<File> {
+    fun resolvePath(path: String): List<File> {
+        if (File(path).isFile) {
+            return arrayListOf(File(path))
+        }
         val scanner = DirectoryScanner()
         val basedir = parseBaseDir(path)
         val mask = parseMask(path, basedir)

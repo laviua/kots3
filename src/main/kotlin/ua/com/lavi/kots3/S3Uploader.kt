@@ -15,8 +15,13 @@ class S3Uploader(val amazonS3: AmazonS3) {
     fun upload(bucketName: String, sourceFile: File, s3FullPath: String) {
         println("Uploading object from $sourceFile into ${amazonS3.region}:$bucketName:$s3FullPath...")
         try {
+            val listObjects = amazonS3.listObjects(bucketName).objectSummaries
+            listObjects
+                    .filter { it.key == s3FullPath }
+                    .forEach { println("Object ${it.key} will be overwritten!") }
+
             amazonS3.putObject(PutObjectRequest(bucketName, s3FullPath, sourceFile))
-            println("Uploading is completed.")
+            println("Uploading $sourceFile is completed.")
         }
         catch (ase: AmazonServiceException) {
             println("Error Message:    ${ase.message}")

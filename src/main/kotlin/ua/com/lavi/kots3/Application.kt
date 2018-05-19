@@ -18,10 +18,9 @@ class Kots3 {
 
     fun start(args: Array<String>) {
         if (args.isEmpty() || args.size < 5) {
-            println("Program arguments: \r\n" +
-                    "java -jar kots3.jar DOWNLOAD <key> <secret> <region> <bucket> <s3_source> <realfs_destination>" + "\r\n" +
-                    "java -jar kots3.jar UPLOAD <key> <secret> <region> <bucket> <realfs_source> <s3_destination>")
-
+            println("""Program arguments:
+            java -jar kots3.jar DOWNLOAD <key> <secret> <region> <bucket> <s3_source> <realfs_destination>
+            java -jar kots3.jar UPLOAD <key> <secret> <region> <bucket> <realfs_source> <s3_destination>""")
             System.exit(1)
         }
 
@@ -67,13 +66,11 @@ class Kots3 {
                 maxErrorRetry,
                 true)
 
-        val amazonS3 = AmazonS3ClientBuilder.standard()
+        return AmazonS3ClientBuilder.standard()
                 .withClientConfiguration(clientConfiguration)
                 .withCredentials(AWSStaticCredentialsProvider(basicAWSCredentials))
                 .withRegion(awsRegion)
                 .build()
-
-        return amazonS3
     }
 
     enum class ActionType {
