@@ -3,7 +3,7 @@ package ua.com.lavi.kots3
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 
-internal class FilePathResolverTest {
+class FilePathResolverTest {
 
     @Test
     fun shouldGetTwoFiles() {
@@ -28,6 +28,6 @@ internal class FilePathResolverTest {
     @Test
     fun shouldGetAllKotlinFiles() {
         val pathes = FilePathResolver.resolvePath("./**/*.kt")
-        Assertions.assertTrue(pathes.size == 5, "Files is not 6")
+        Assertions.assertTrue(pathes.size == 6, "Files is not 6")
     }
 }

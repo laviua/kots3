@@ -10,7 +10,7 @@ import java.io.File
  * Created by Oleksandr Loushkin on 11.02.17.
  */
 
-class S3Uploader(val amazonS3: AmazonS3) {
+class S3SinglePartUploader(private val amazonS3: AmazonS3) {
 
     fun upload(bucketName: String, sourceFile: File, s3FullPath: String) {
         println("Uploading object from $sourceFile into ${amazonS3.region}:$bucketName:$s3FullPath...")

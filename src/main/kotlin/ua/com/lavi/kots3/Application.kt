@@ -47,7 +47,7 @@ class Kots3 {
         val files = FilePathResolver.resolvePath(source)
         val s3Path = buildS3Path(target)
         for (sourceFile in files) {
-            S3Uploader(amazonS3Client).upload(bucketName, sourceFile, s3Path + sourceFile.name)
+            S3MultiPartUploader(amazonS3Client).upload(bucketName, sourceFile, s3Path + sourceFile.name)
         }
     }
 
